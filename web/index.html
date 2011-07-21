@@ -1,0 +1,303 @@
+<html>
+  <head>
+    <title>Junction Show</title> 
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans&v2' rel='stylesheet' type='text/css'>
+    <style>
+#slides {
+  display: none;
+  position:absolute;
+}
+
+body {
+  margin:0;
+  overflow:hidden;
+  font-family: 'Open Sans', sans-serif;
+}
+
+#screen {
+  position:absolute;
+  left:0;
+  margin:0;
+  background-color: #FFF;
+  width:100%;
+  height:100%;
+  padding:0px;
+  overflow:hidden;
+}
+
+#navbar {
+  display:none;
+}
+
+#navbar div {
+  display: inline;
+  font-size:20px;
+  padding-right: 10px;
+  cursor: pointer;
+}
+
+.slide {
+  font-size:30;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5 {
+  margin: 0;
+}
+
+.frame {
+  min-height:80%;
+  padding: 20px;
+  margin: 10px;
+  font-size:20px;
+  background-color: #dda;
+  text-align:center;
+  -moz-border-radius: 15px;
+  -webkit-border-radius: 15px;
+  -khtml-border-radius: 15px;
+  border-radius: 15px;
+}
+
+.frame h1 {
+  padding: 8px;
+}
+
+.byline {
+  text-align:center;
+  background-color: #dda;
+  -moz-border-radius: 15px;
+  -webkit-border-radius: 15px;
+  -khtml-border-radius: 15px;
+  border-radius: 15px;
+  padding: 9px;
+  margin: 10px;
+  margin-top: 30px;
+}
+
+li {
+  padding: 5px;
+}
+
+code, .code {
+  background-color: #ffa;
+}
+
+.code {
+  margin:10px;
+  padding-bottom: 15px;
+  -moz-border-radius: 15px;
+  -webkit-border-radius: 15px;
+  -khtml-border-radius: 15px;
+  border-radius: 15px;
+}
+    </style>
+
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>   
+    <script language='javascript' type='text/javascript' src='http://openjunction.github.com/JSJunction/json2.js'></script>
+    <script language='javascript' type='text/javascript' src='http://openjunction.github.com/JSJunction/strophejs/1.0.1/strophe.js'></script>
+    <script language='javascript' type='text/javascript' src='http://openjunction.github.com/JSJunction/junction/0.6.8/junction.js'></script>
+    
+    <script type="text/javascript">
+var allowLocal = true;//(window.location.protocol == "file:");
+var allowRemote = (window.location.protocol == "http:");
+
+var show = {};
+show.current = 0;
+
+show.init = function() {
+  this.slides = $(".slide");
+  $(".slide").each(function(i, item) {
+    if ($(item).hasClass("starter")) {
+      show.jump(i);
+    }
+  });
+  $(document).bind("keyup",function(e){
+    // 37 left, 38 up, 39 right, 40 down
+    var KEY_LEFT = 37;
+    var KEY_RIGHT = 39;
+    switch (e.which) {
+    case KEY_LEFT:
+      show.prev();
+    break;
+    case KEY_RIGHT:
+      show.next();
+    }
+   
+  });
+  if (allowLocal) {
+    show.drawNavButtons();
+    show.display();
+  }
+}
+
+show.onMessageReceived = function(msg) {
+  if (!$("#followbox").is(':checked')) {
+    return;
+  }
+  if (msg.action == "next") {
+    this.next();
+  } else if (msg.action == "prev") {
+    this.prev();
+  } else if (msg.action == "jump") {
+    this.jump(msg.pos);
+  }
+};
+
+show.onActivityJoin = function() {
+  this.sendMessageToSession({"joined":"display", "slidecount":this.slides.length});
+  this.display();
+};
+
+show.next = function() {
+  if (this.slides.length > this.current + 1) this.current++;
+  this.display();
+}
+
+show.prev = function() {
+  if (this.current > 0) this.current--;
+  this.display();
+}
+
+show.jump = function(pos) {
+  if (pos == "first") pos = 0;
+  if (pos == "last") pos = this.slides.length - 1;
+  if (pos >= 0 && pos < this.slides.length) this.current = pos;
+  this.display();
+}
+
+show.display = function() {
+  var c = this.current;
+  window.location.hash = c;
+  $("#hashtag").html('<a href="#'+c+'">#'+c+'</a>');
+  $("#screen").html(this.slides[c]);
+}
+
+show.drawNavButtons = function() {
+  $("#navHome").click(function() {
+    show.jump(0);
+  });
+
+  $("#navPrev").click(function() {
+    show.prev();
+  });
+
+  $("#navNext").click(function() {
+    show.next();
+  });
+
+  $("#navEnd").click(function() {
+    show.jump("last");
+  });
+
+  $("#navbar").show();
+}
+
+var script = {ad:"org.openjunction.weshow"};
+
+$(function(){
+  show.init();
+  $("#hidebar").click(function(){
+    $("#navbar").slideUp();
+  });
+  if (location.hash) {
+    var n = location.hash.substring(1);
+    show.jump(n);
+  }
+  if (allowRemote) {
+    JX.getInstance("prpl.stanford.edu").newJunction(script,show);
+  }
+});
+
+
+
+    </script>    
+  </head>
+  <body>
+    <div id="navbar">
+      <div class="navbutton" id="navHome">Home</div>
+      <div class="navbutton" id="navPrev">Previous</div>
+      <div class="navbutton" id="navNext">Next</div>
+      <div class="navbutton" id="navEnd">End</div>
+      <div><a id="hashtag" href="#0">#0</a></div>
+      <div><input type="checkbox" id="followbox" checked> Follow?</div>
+      <div><a href="#hidebar" id="hidebar" style="position:absolute;right:10px;">Hide this bar</a></div>
+    </div>
+    <div id="screen"></div>
+    <div id="slides">
+
+
+
+
+<div class="slide">
+<div class="frame">
+  <h1>Connecting People and Devices</h1>
+<p class="byline">
+  Ben Dodson <br/>
+  bjdodson@stanford.edu <br/>
+  7.26.2011
+</p>
+</div>
+      </div>
+
+<div class="slide">
+<div class="frame">
+  <h1>"Three Screens and a Cloud."</h1>
+  <img src="img/3-screens-and-a-cloud.png"/>
+</div>
+</div>
+
+<div class="slide">
+<div class="frame">
+  <h1>"<s>Three</s> Four Screens and a Cloud."</h1>
+  <img src="img/4-screens-and-a-cloud.png" />
+</div>
+</div>
+
+<div class="slide">
+<div class="frame">
+  <h1>We like our phones.</h1>
+  <img src="img/3phones.png"/>
+</div>
+</div>
+
+<div class="slide">
+<div class="frame">
+  <h1>We like our other devices, too.</h1>
+  <img src="img/manydevices.png"/>
+</div>
+</div>
+
+<div class="slide">
+<div class="frame">
+  <h1>Let's use them for what they're good at.</h1>
+  <img src="img/ThePlaneteers.JPG"/> <br/>
+  <img src="img/captain-planet.png"/>
+</div>
+</div>
+
+<div class="slide">
+<div class="frame">
+  <h1 style="margin-bottom:50px;">Tool #1: NFC</h1>
+    <img src="img/dunging.jpg" style="width:400px;" />
+    <img src="img/roofcat.jpg" style="width:400px;" />
+</div>
+</div>
+
+<div class="slide">
+<div class="frame">
+  <h1 style="margin-bottom:50px;">...with a twist</h1>
+    <img src="img/nfc-purr.jpg" style="width:400px;" />
+</div>
+</div>
+
+<div class="slide starter">
+<div class="frame">
+  <h1 style="margin-bottom:50px;">Tool #2: Junction</h1>
+    <img src="img/nfc-poker.jpg" style="height:300px;" />
+    <img src="img/present.jpg" style="height:300px;" />
+</div>
+</div>
+
+  </body>
+</html>
